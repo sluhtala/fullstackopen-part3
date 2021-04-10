@@ -1,0 +1,15 @@
+.notification {
+	font-size: 30px;
+	font-family: Georgia, "Times New Roman", Times, serif;
+	color: green;
+	border: solid 3px green;
+	font-style: italic;
+	padding: 10px;
+	background-color: lightgray;
+	margin: 0 0 20px 0;
+}
+
+.error {
+	color: red !important;
+	border-color: red !important;
+}
