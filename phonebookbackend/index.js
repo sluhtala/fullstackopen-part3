@@ -2,6 +2,8 @@ const express = require("express");
 const app = express();
 const morgan = require("morgan");
 
+const PORT = process.env.PORT;
+
 app.use(express.json());
 
 morgan.token("body", (req, res) => JSON.stringify(req.body));
@@ -18,8 +20,6 @@ const morganCustomFunction = (tokens, req, res) => {
 	].join(" ");
 };
 app.use(morgan(morganCustomFunction));
-
-const PORT = 3001;
 
 const persons = [
 	{
