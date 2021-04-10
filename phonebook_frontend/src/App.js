@@ -145,11 +145,11 @@ const App = () => {
 		const newPerson = {
 			name: newName,
 			number: newNumber,
-			id: findMaxId() + 1,
 		};
 		backEnd
 			.addNumber(newPerson)
-			.then(() => {
+			.then((respond) => {
+				newPerson.id = respond.id;
 				setPersons(persons.concat(newPerson));
 				setNotification(`${newPerson.name} added`);
 				setTimeout(() => {

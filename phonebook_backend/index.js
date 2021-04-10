@@ -109,7 +109,7 @@ app.post("/api/persons", (req, res) => {
 		return;
 	} else {
 		persons.push(newPerson);
-		res.sendStatus(200);
+		res.status(200).send({ id: newPerson.id });
 	}
 });
 
