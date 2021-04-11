@@ -1,7 +1,9 @@
+require("dotenv").config();
 const express = require("express");
 const app = express();
 const morgan = require("morgan");
 const cors = require("cors");
+const Person = require("./models/person");
 
 const PORT = process.env.PORT;
 
@@ -47,28 +49,47 @@ const persons = [
 	},
 ];
 
-app.get("/api/persons", (req, res) => {
-	res.json(persons);
+app.get("/api/persons", (req, res, next) => {
+	Person.find({})
+		.then((result) => {
+			res.json(result);
+		})
+		.catch((e) => {
+			next(e);
+		});
 });
 
-app.get("/api/persons/:id", (req, res) => {
-	console.log(req.params.id);
+app.get("/api/persons/:id", (req, res, next) => {
 	const paramId = Number(req.params.id);
-	const person = persons.find((p) => p.id === paramId);
-	if (person) res.json(person).end();
-	res.sendStatus(404).end();
+	Person.findById(req.params.id)
+		.then((result) => {
+			if (result) res.json(result);
+			else res.status(404).end();
+		})
+		.catch((e) => {
+			next(e);
+		});
+	//const person = persons.find((p) => p.id === paramId);
+	//if (person) res.json(person).end();
 });
 
-app.get("/info", (req, res) => {
+app.get("/info", (req, res, next) => {
 	res.setHeader("Content-Type", "text/html");
 	const time = new Date();
 	console.log(time.toUTCString());
-	res.send(
-		`<p>Phonebook has info for ${persons.length} people</p><p>${time}</p>`
-	);
+	Person.countDocuments({})
+		.then((result) => {
+			res.send(
+				`<p>Phonebook has info for ${result} people</p><p>${time}</p>`
+			);
+		})
+		.catch((e) => {
+			next(e);
+		});
 });
 
-app.delete("/api/persons/:id", (req, res) => {
+app.delete("/api/persons/:id", (req, res, next) => {
+	/*
 	const paramId = Number(req.params.id);
 	for (let i = 0; i < persons.length; i++) {
 		if (persons[i].id === paramId) {
@@ -78,6 +99,14 @@ app.delete("/api/persons/:id", (req, res) => {
 		}
 	}
 	res.sendStatus(404).end();
+	*/
+	Person.findByIdAndRemove(req.params.id)
+		.then((result) => {
+			res.status(204).end();
+		})
+		.catch((e) => {
+			next(e);
+		});
 });
 
 const generateId = (iter = 0) => {
@@ -97,20 +126,50 @@ const checkNewPerson = (person) => {
 };
 
 app.post("/api/persons", (req, res) => {
-	const newPerson = req.body;
-	const error = checkNewPerson(newPerson);
+	const body = req.body;
+	const error = checkNewPerson(body);
 	if (error) {
 		res.status(403).json({ error: error }).end();
 		return;
 	}
+	/*
 	newPerson.id = generateId();
 	if (newPerson.id === -1) {
 		res.status(500).end();
 		return;
 	} else {
 		persons.push(newPerson);
-		res.status(200).send({ id: newPerson.id });
+		res.status(200).send({ id: body.id });
 	}
+	*/
+	const person = new Person({
+		name: body.name,
+		number: body.number,
+	});
+	person
+		.save()
+		.then((result) => {
+			console.log(`${body.name} saved to mongodb`);
+			res.json({ id: result.id });
+		})
+		.catch((e) => {
+			console.log(e);
+		});
+});
+
+app.put("/api/persons/:id", (req, res, next) => {
+	const body = req.body;
+	const newPerson = {
+		name: body.name,
+		number: body.number,
+	};
+	Person.findByIdAndUpdate(req.params.id, newPerson, { new: true })
+		.then((result) => {
+			res.json(result);
+		})
+		.catch((e) => {
+			next(e);
+		});
 });
 
 const unknownEndpoint = (req, res, next) => {
@@ -119,6 +178,15 @@ const unknownEndpoint = (req, res, next) => {
 };
 
 app.use(unknownEndpoint);
+
+const errorHandler = (error, req, res, next) => {
+	console.error(error.message);
+	if (error.name === "CastError")
+		return res.status(400).send({ error: "malformatted id" });
+	next(error);
+};
+
+app.use(errorHandler);
 
 app.listen(PORT, () => {
 	console.log(`Listening at port ${PORT}`);
