@@ -26,29 +26,6 @@ const morganCustomFunction = (tokens, req, res) => {
 };
 app.use(morgan(morganCustomFunction));
 
-const persons = [
-	{
-		name: "Arto Hellas",
-		number: "040-123456",
-		id: 1,
-	},
-	{
-		name: "Ada Lovelace",
-		number: "39-44-5323523",
-		id: 2,
-	},
-	{
-		name: "Dan Abramov",
-		number: "12-43-234345",
-		id: 3,
-	},
-	{
-		name: "Mary Poppendieck",
-		number: "39-23-6423122",
-		id: 4,
-	},
-];
-
 app.get("/api/persons", (req, res, next) => {
 	Person.find({})
 		.then((result) => {
@@ -102,7 +79,8 @@ app.delete("/api/persons/:id", (req, res, next) => {
 	*/
 	Person.findByIdAndRemove(req.params.id)
 		.then((result) => {
-			res.status(204).end();
+			if (result) res.status(204).end();
+			else res.status(400).end();
 		})
 		.catch((e) => {
 			next(e);
@@ -125,14 +103,15 @@ const checkNewPerson = (person) => {
 	return null;
 };
 
-app.post("/api/persons", (req, res) => {
+app.post("/api/persons", (req, res, next) => {
 	const body = req.body;
+	/*
+	//Previous errorhandling, now mongoose does it
 	const error = checkNewPerson(body);
 	if (error) {
 		res.status(403).json({ error: error }).end();
 		return;
 	}
-	/*
 	newPerson.id = generateId();
 	if (newPerson.id === -1) {
 		res.status(500).end();
@@ -153,7 +132,7 @@ app.post("/api/persons", (req, res) => {
 			res.json({ id: result.id });
 		})
 		.catch((e) => {
-			console.log(e);
+			next(e);
 		});
 });
 
@@ -180,9 +159,12 @@ const unknownEndpoint = (req, res, next) => {
 app.use(unknownEndpoint);
 
 const errorHandler = (error, req, res, next) => {
-	console.error(error.message);
+	console.log(error.message);
 	if (error.name === "CastError")
 		return res.status(400).send({ error: "malformatted id" });
+	else if (error.name === "ValidationError") {
+		return res.status(400).send({ error: error.message });
+	}
 	next(error);
 };
 

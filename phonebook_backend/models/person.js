@@ -1,5 +1,6 @@
 const dotenv = require("dotenv").config();
 const mongoose = require("mongoose");
+const uniqueValidator = require("mongoose-unique-validator");
 
 const url = process.env.MONGODB_URI;
 
@@ -18,9 +19,21 @@ mongoose
 	});
 
 const personSchema = new mongoose.Schema({
-	name: String,
-	number: String,
+	name: { type: String, required: true, unique: true, minlength: 3 },
+	number: {
+		type: String,
+		required: true,
+		validate: {
+			validator: (number) => {
+				const onlyDigits = number.replace(/[-+\(\) ]/g, "");
+				return onlyDigits.length >= 8;
+			},
+			message: "Number must have at least 8 digits",
+		},
+	},
 });
+
+personSchema.plugin(uniqueValidator);
 
 personSchema.set("toJSON", {
 	transform: (document, returnedObject) => {
